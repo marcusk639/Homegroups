@@ -1,0 +1,4 @@
+info Found Xcode workspace "RecoveryConnect.xcworkspace"
+info Found booted iPhone 16 Pro
+info Launching iPhone 16 Pro
+info Building (using "xcodebuild -workspace RecoveryConnect.xcworkspace -configuration Debug -scheme RecoveryConnect -destination id=DBCDC994-2415-4FCE-9807-888F6B8D96EB")
