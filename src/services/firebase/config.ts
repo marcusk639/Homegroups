@@ -20,9 +20,7 @@ import FirebaseFunctions from '@react-native-firebase/functions';
 // import FirebaseDynamicLinks from '@react-native-firebase/dynamic-links';
 import FirebaseFirestore from '@react-native-firebase/firestore';
 // import FirebaseStorage from '@react-native-firebase/storage';
-import {FirebaseAuthTypes} from '@react-native-firebase/auth';
 // import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
-import {FirebaseFirestoreTypes} from '@react-native-firebase/firestore';
 // import { FirebaseStorageTypes } from '@react-native-firebase/storage';
 //
 // const app = firebase.app();
