@@ -42,7 +42,7 @@ export const registerWithEmail = async (
 ): Promise<FirebaseAuthTypes.UserCredential> => {
   try {
     // Create user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(
+    const userCredential = await auth.createUserWithEmailAndPassword(
       data.email,
       data.password,
     );
@@ -53,14 +53,15 @@ export const registerWithEmail = async (
         displayName: data.displayName,
       });
 
-      collection('users')
+      firestore
+        .collection('users')
         .doc(userCredential.user.uid)
         .set({
           email: data.email,
           displayName: data.displayName,
           recoveryDate: data.recoveryDate ? new Date(data.recoveryDate) : null,
-          createdAt: FirebaseFirestoreTypes.FieldValue.serverTimestamp(),
-          lastLogin: FirebaseFirestoreTypes.FieldValue.serverTimestamp(),
+          createdAt: FirebaseFirestore.FieldValue.serverTimestamp(),
+          lastLogin: FirebaseFirestore.FieldValue.serverTimestamp(),
         });
     }
 
@@ -76,15 +77,15 @@ export const loginWithEmail = async (
   data: LoginData,
 ): Promise<FirebaseAuthTypes.UserCredential> => {
   try {
-    const userCredential = await signInWithEmailAndPassword(
+    const userCredential = await auth.signInWithEmailAndPassword(
       data.email,
       data.password,
     );
 
     // Update last login timestamp
     if (userCredential.user) {
-      await collection('users').doc(userCredential.user.uid).update({
-        lastLogin: FirebaseFirestoreTypes.FieldValue.serverTimestamp(),
+      await firestore.collection('users').doc(userCredential.user.uid).update({
+        lastLogin: FirebaseFirestore.FieldValue.serverTimestamp(),
       });
     }
 
@@ -144,7 +145,7 @@ export const resetPassword = async (email: string): Promise<void> => {
 // Get the current user's profile data
 export const getUserProfile = async (userId: string) => {
   try {
-    const userDoc = await collection('users').doc(userId).get();
+    const userDoc = await firestore.collection('users').doc(userId).get();
 
     if (userDoc.exists) {
       return userDoc.data();

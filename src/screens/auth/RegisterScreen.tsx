@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/stack';
+import {registerWithEmail} from '../../services/firebase/auth';
 
 // Define RegisterData type for form state
 interface RegisterData {
@@ -155,7 +156,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
     try {
       // In a real app, we would call Firebase authentication
       // For the MVP, we'll just simulate a network request
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('formData', formData);
+      const user = await registerWithEmail(formData);
+      console.log('User registered:', user);
 
       // Navigate to Main app after successful registration
       navigation.replace('Main');

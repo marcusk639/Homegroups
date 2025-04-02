@@ -16,7 +16,7 @@
 import FirebaseAuth from '@react-native-firebase/auth';
 // import FirebaseMessaging from '@react-native-firebase/messaging';
 // import FirebaseDatabase from '@react-native-firebase/database';
-import FirebaseFunctions from '@react-native-firebase/functions';
+// import FirebaseFunctions from '@react-native-firebase/functions';
 // import FirebaseDynamicLinks from '@react-native-firebase/dynamic-links';
 import FirebaseFirestore from '@react-native-firebase/firestore';
 // import FirebaseStorage from '@react-native-firebase/storage';
@@ -28,11 +28,11 @@ import FirebaseFirestore from '@react-native-firebase/firestore';
 const auth = FirebaseAuth();
 // const messaging = FirebaseMessaging();
 // const storage = FirebaseStorage();
-const functions = FirebaseFunctions();
+// const functions = FirebaseFunctions();
 
-export const callHttpsFunction = (name: string, payload: any) => {
-  return FirebaseFunctions().httpsCallable(name)(payload);
-};
+// export const callHttpsFunction = (name: string, payload: any) => {
+//   return FirebaseFunctions().httpsCallable(name)(payload);
+// };
 
 // const links = FirebaseDynamicLinks();
 // auth.signOut();
@@ -50,7 +50,7 @@ export {
   auth,
   // messaging,
   // storage,
-  functions,
+  // functions,
   // links,
   // FirebaseAuthTypes,
   // FirebaseDatabaseTypes,
