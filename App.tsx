@@ -1,118 +1,147 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useState, useEffect} from 'react';
+import {StatusBar, SafeAreaView, View, Text} from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createStackNavigator} from '@react-navigation/stack';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import auth, {FirebaseAuthTypes} from '@react-native-firebase/auth';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+// Import screens
+import SplashScreen from './src/screens/SplashScreen';
+import LoginScreen from './src/screens/auth/LoginScreen';
+import RegisterScreen from './src/screens/auth/RegisterScreen';
+import LandingScreen from './src/screens/auth/LandingScreen';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// Placeholder for main app screens
+const HomeScreen = () => (
+  <SafeAreaView
+    style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <Text>Home Screen</Text>
+  </SafeAreaView>
+);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const MeetingsScreen = () => (
+  <SafeAreaView
+    style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <Text>Meetings Screen</Text>
+  </SafeAreaView>
+);
 
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const ProfileScreen = () => (
+  <SafeAreaView
+    style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <Text>Profile Screen</Text>
+  </SafeAreaView>
+);
+
+// Define the param types for our navigation stacks
+type AuthStackParamList = {
+  Landing: undefined;
+  Login: undefined;
+  Register: undefined;
+};
+
+type MainTabParamList = {
+  Home: undefined;
+  Meetings: undefined;
+  Profile: undefined;
+};
+
+type RootStackParamList = {
+  Splash: undefined;
+  Auth: undefined;
+  Main: undefined;
+};
+
+// Create the navigation stacks
+const AuthStack = createStackNavigator<AuthStackParamList>();
+const MainTab = createBottomTabNavigator<MainTabParamList>();
+const RootStack = createStackNavigator<RootStackParamList>();
+
+// Auth navigation stack
+const AuthNavigator = () => {
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <AuthStack.Navigator
+      initialRouteName="Landing"
+      screenOptions={{
+        headerShown: false,
+      }}>
+      <AuthStack.Screen name="Landing" component={LandingScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
+    </AuthStack.Navigator>
   );
-}
+};
 
-function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
+// Main app navigation (tabs)
+const MainNavigator = () => {
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <MainTab.Navigator>
+      <MainTab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Home',
+          // Add icons here in the future
+        }}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <MainTab.Screen
+        name="Meetings"
+        component={MeetingsScreen}
+        options={{
+          tabBarLabel: 'Meetings',
+          // Add icons here in the future
+        }}
+      />
+      <MainTab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          // Add icons here in the future
+        }}
+      />
+    </MainTab.Navigator>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+const App = () => {
+  // Set up initial state
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if the user is logged in
+    const unsubscribe = auth().onAuthStateChanged(
+      (user: FirebaseAuthTypes.User | null) => {
+        setIsAuthenticated(!!user);
+        setIsLoading(false);
+      },
+    );
+
+    // Clean up the auth listener
+    return unsubscribe;
+  }, []);
+
+  // Show splash screen while loading
+  if (isLoading) {
+    return <SplashScreen navigation={{replace: () => {}}} />;
+  }
+
+  return (
+    <NavigationContainer>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <RootStack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}>
+        {isAuthenticated ? (
+          <RootStack.Screen name="Main" component={MainNavigator} />
+        ) : (
+          <RootStack.Screen name="Auth" component={AuthNavigator} />
+        )}
+      </RootStack.Navigator>
+    </NavigationContainer>
+  );
+};
 
 export default App;
