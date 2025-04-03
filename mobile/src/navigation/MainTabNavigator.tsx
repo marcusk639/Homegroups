@@ -116,14 +116,6 @@ const MainTabNavigator: React.FC = () => {
         },
         headerShown: false,
       }}>
-      {/* <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({focused}) => <HomeIcon focused={focused} />,
-        }}
-      /> */}
       <Tab.Screen
         name="Home"
         component={HomeGroupNavigator}
