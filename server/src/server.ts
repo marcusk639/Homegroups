@@ -2,11 +2,11 @@ import { config } from "dotenv";
 config(); // Load environment variables
 
 import app from "./app";
-import { connectDB } from "./config/database";
+// import { connectDB } from "./config/database";
 import logger from "./utils/logger";
 
 // Connect to MongoDB
-connectDB();
+// connectDB();
 
 // Start the server
 const PORT = process.env.PORT || 5000;

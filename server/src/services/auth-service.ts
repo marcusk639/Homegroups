@@ -5,6 +5,7 @@ import * as firestoreUtils from "../utils/firestore";
 import logger from "../utils/logger";
 import { ApiError } from "../middleware/error";
 import { STATUS_CODES, ERROR_MESSAGES } from "../utils/constants";
+import { UserProfile } from "../types/user";
 
 /**
  * Register a new user with email and password
@@ -107,7 +108,7 @@ export const loginUser = async (
 export const getUserById = async (uid: string) => {
   try {
     const userRecord = await auth.getUser(uid);
-    const userData = await firestoreUtils.getDoc(`users/${uid}`);
+    const userData = await firestoreUtils.getDocById<UserProfile>("users", uid);
 
     if (!userData) {
       throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
