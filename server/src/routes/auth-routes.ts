@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   register,
   login,
@@ -6,37 +6,37 @@ import {
   refreshToken,
   resetPassword,
   verifyEmail,
-} from '../controllers/auth-controller';
-import {validateRequest} from '../middleware/validation';
+} from "../controllers/auth-controller";
+import { validateRequest } from "../middleware/validation";
 import {
   registerSchema,
   loginSchema,
   resetPasswordSchema,
   verifyEmailSchema,
-} from '../types/auth';
+} from "../types/auth";
 
 const router = express.Router();
 
 // Register a new user
-router.post('/register', validateRequest(registerSchema), register);
+router.post("/register", validateRequest(registerSchema), register);
 
 // Login user
-router.post('/login', validateRequest(loginSchema), login);
+router.post("/login", validateRequest(loginSchema), login);
 
 // Logout user
-router.post('/logout', logout);
+router.post("/logout", logout);
 
 // Refresh access token
-router.post('/refresh-token', refreshToken);
+router.post("/refresh-token", refreshToken);
 
 // Reset password
 router.post(
-  '/reset-password',
+  "/reset-password",
   validateRequest(resetPasswordSchema),
-  resetPassword,
+  resetPassword
 );
 
 // Verify email
-router.post('/verify-email', validateRequest(verifyEmailSchema), verifyEmail);
+router.post("/verify-email", validateRequest(verifyEmailSchema), verifyEmail);
 
 export default router;

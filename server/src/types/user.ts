@@ -1,4 +1,11 @@
-import {z} from 'zod';
+import { z } from "zod";
+
+export interface UserRegistrationData {
+  email: string;
+  password: string;
+  displayName: string;
+  recoveryDate?: Date;
+}
 
 export interface UserProfile {
   uid: string;

@@ -4,3 +4,4 @@
 /logs
 /tmp
 /cache
+.env

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "npx react-native run-ios --udid CABB5239-CBF8-4411-B135-EF6CEC671691",
     "start": "react-native start",
     "uninstall": "rm -rf node_modules",
     "pod:install": "cd ios && pod install && cd ..",
