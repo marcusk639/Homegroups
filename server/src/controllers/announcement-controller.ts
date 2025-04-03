@@ -2,136 +2,134 @@ import {Request, Response, NextFunction} from 'express';
 import * as announcementService from '../services/announcement-service';
 import {AuthRequest} from '../types/auth';
 import {SUCCESS_MESSAGES} from '../utils/constants';
+import {ApiError} from '../middleware/error';
+import {STATUS_CODES, ERROR_MESSAGES} from '../utils/constants';
+import {
+  AnnouncementCreationData,
+  AnnouncementUpdateData,
+  AnnouncementPaginationData,
+  AnnouncementAuthorData,
+} from '../types/announcement';
+import {asyncHandler} from '../middleware/error';
 
 /**
  * Get all announcements for a group
  */
-export const getGroupAnnouncements = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const {id} = req.params; // Group ID
+export const getGroupAnnouncements = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new ApiError(
+        STATUS_CODES.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+    const {groupId} = req.params;
     const {limit, startAfter} = req.query;
-    const userId = req.user?.uid as string;
-
-    const limitNum = limit ? parseInt(limit as string) : 20;
+    const paginationData: AnnouncementPaginationData = {
+      limit: limit ? parseInt(limit as string) : 20,
+      startAfter: startAfter as string | undefined,
+    };
     const announcements = await announcementService.getGroupAnnouncements(
       userId,
-      id,
-      limitNum,
-      startAfter as string,
+      groupId,
+      paginationData.limit,
+      paginationData.startAfter,
     );
-
-    res.json(announcements);
-  } catch (error) {
-    next(error);
-  }
-};
+    res.status(STATUS_CODES.OK).json(announcements);
+  },
+);
 
 /**
  * Get a single announcement by ID
  */
-export const getAnnouncementById = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const {id, announcementId} = req.params;
-    const userId = req.user?.uid as string;
-
+export const getAnnouncementById = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new ApiError(
+        STATUS_CODES.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+    const {groupId, announcementId} = req.params;
     const announcement = await announcementService.getAnnouncementById(
       userId,
-      id,
+      groupId,
       announcementId,
     );
-
-    res.json(announcement);
-  } catch (error) {
-    next(error);
-  }
-};
+    res.status(STATUS_CODES.OK).json(announcement);
+  },
+);
 
 /**
  * Create a new announcement
  */
-export const createAnnouncement = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const {id} = req.params; // Group ID
-    const userId = req.user?.uid as string;
-    const announcementData = req.body;
-
+export const createAnnouncement = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new ApiError(
+        STATUS_CODES.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+    const {groupId} = req.params;
+    const announcementData = req.body as AnnouncementCreationData;
     const announcement = await announcementService.createAnnouncement(
       userId,
-      id,
+      groupId,
       announcementData,
     );
-
-    res.status(201).json({
-      message: SUCCESS_MESSAGES.ANNOUNCEMENT_CREATED,
-      announcement,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    res.status(STATUS_CODES.CREATED).json(announcement);
+  },
+);
 
 /**
  * Update an announcement
  */
-export const updateAnnouncement = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const {id, announcementId} = req.params;
-    const userId = req.user?.uid as string;
-    const updateData = req.body;
-
+export const updateAnnouncement = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new ApiError(
+        STATUS_CODES.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+    const {groupId, announcementId} = req.params;
+    const announcementData = req.body as AnnouncementUpdateData;
     const announcement = await announcementService.updateAnnouncement(
       userId,
-      id,
+      groupId,
       announcementId,
-      updateData,
+      announcementData,
     );
-
-    res.json({
-      message: SUCCESS_MESSAGES.ANNOUNCEMENT_UPDATED,
-      announcement,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    res.status(STATUS_CODES.OK).json(announcement);
+  },
+);
 
 /**
  * Delete an announcement
  */
-export const deleteAnnouncement = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const {id, announcementId} = req.params;
-    const userId = req.user?.uid as string;
-
-    await announcementService.deleteAnnouncement(userId, id, announcementId);
-
-    res.json({
-      message: SUCCESS_MESSAGES.ANNOUNCEMENT_DELETED,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+export const deleteAnnouncement = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.uid;
+    if (!userId) {
+      throw new ApiError(
+        STATUS_CODES.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+    const {groupId, announcementId} = req.params;
+    await announcementService.deleteAnnouncement(
+      userId,
+      groupId,
+      announcementId,
+    );
+    res.status(STATUS_CODES.NO_CONTENT).send();
+  },
+);
 
 /**
  * Clean up expired announcements

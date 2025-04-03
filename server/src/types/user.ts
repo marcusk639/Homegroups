@@ -1,41 +1,45 @@
+import {z} from 'zod';
+
 export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
-  recoveryDate?: string;
+  photoURL?: string;
+  recoveryDate?: Date;
+  homeGroups: string[];
   createdAt: Date;
   updatedAt: Date;
-  lastLogin?: Date;
-  notificationSettings: {
-    meetings: boolean;
-    announcements: boolean;
-    celebrations: boolean;
-  };
+}
+
+export interface UserSettings {
+  uid: string;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
   privacySettings: {
     showRecoveryDate: boolean;
-    allowDirectMessages: boolean;
+    showHomeGroups: boolean;
   };
-  homeGroups: string[]; // Array of group IDs
-  role: "user" | "admin";
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface UserRegistrationData {
-  email: string;
-  password: string;
-  displayName: string;
-  recoveryDate?: string;
-}
+// Validation schemas
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(2).optional(),
+  photoURL: z.string().url().optional(),
+  recoveryDate: z.string().datetime().optional(),
+});
 
-export interface UserUpdateData {
-  displayName?: string;
-  recoveryDate?: string;
-  notificationSettings?: {
-    meetings?: boolean;
-    announcements?: boolean;
-    celebrations?: boolean;
-  };
-  privacySettings?: {
-    showRecoveryDate?: boolean;
-    allowDirectMessages?: boolean;
-  };
-}
+export const updateSettingsSchema = z.object({
+  emailNotifications: z.boolean().optional(),
+  pushNotifications: z.boolean().optional(),
+  privacySettings: z
+    .object({
+      showRecoveryDate: z.boolean().optional(),
+      showHomeGroups: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
+export type UpdateSettingsData = z.infer<typeof updateSettingsSchema>;

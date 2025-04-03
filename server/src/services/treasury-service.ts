@@ -7,9 +7,12 @@ import {
   TransactionCategory,
   Transaction,
   Treasury,
+  TransactionCreationData,
 } from '../types/treasury';
 import {getGroupById} from './group-service';
 import {UserProfile} from '@/types/user';
+import {v4 as uuidv4} from 'uuid';
+import {Group, GroupMember} from '../types/group';
 
 /**
  * Get all transactions for a group
@@ -570,4 +573,125 @@ export const getMonthlyTransactionSummary = async (
       ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
+};
+
+export const getGroupTreasury = async (
+  userId: string,
+  groupId: string,
+): Promise<Treasury> => {
+  // Verify user is a member of the group
+  const groupDoc = await firestoreUtils.getDocById<Group>('groups', groupId);
+  if (!groupDoc) {
+    throw new Error('Group not found');
+  }
+
+  const userMember = groupDoc.members.find(member => member.uid === userId);
+  if (!userMember) {
+    throw new Error('Unauthorized');
+  }
+
+  // Get or create treasury
+  let treasury = await firestoreUtils.getDocById<Treasury>(
+    'treasuries',
+    groupId,
+  );
+  if (!treasury) {
+    const now = new Date();
+    treasury = {
+      id: groupId,
+      groupId,
+      balance: 0,
+      prudentReserve: 0,
+      transactions: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    await firestoreUtils.setDoc(`treasuries/${groupId}`, treasury);
+  }
+
+  return treasury;
+};
+
+export const addTreasuryTransaction = async (
+  userId: string,
+  groupId: string,
+  transactionData: TransactionCreationData,
+): Promise<Treasury> => {
+  // Verify user is a member of the group
+  const groupDoc = await firestoreUtils.getDocById<Group>('groups', groupId);
+  if (!groupDoc) {
+    throw new Error('Group not found');
+  }
+
+  const userMember = groupDoc.members.find(member => member.uid === userId);
+  if (!userMember) {
+    throw new Error('Unauthorized');
+  }
+
+  // Get treasury
+  const treasury = await getGroupTreasury(userId, groupId);
+  if (!treasury) {
+    throw new Error('Treasury not found');
+  }
+
+  // Create transaction
+  const transactionId = uuidv4();
+  const now = new Date();
+  const transaction: Transaction = {
+    id: transactionId,
+    groupId,
+    ...transactionData,
+    date: new Date(transactionData.date),
+    createdBy: userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // Update treasury
+  const updatedTreasury = {
+    ...treasury,
+    balance:
+      treasury.balance +
+      (transaction.type === 'income'
+        ? transaction.amount
+        : -transaction.amount),
+    transactions: [...treasury.transactions, transaction],
+    updatedAt: now,
+  };
+
+  await firestoreUtils.updateDoc(`treasuries/${groupId}`, updatedTreasury);
+  return updatedTreasury;
+};
+
+export const updatePrudentReserve = async (
+  userId: string,
+  groupId: string,
+  amount: number,
+): Promise<Treasury> => {
+  // Verify user is an admin of the group
+  const groupDoc = await firestoreUtils.getDocById<Group>('groups', groupId);
+  if (!groupDoc) {
+    throw new Error('Group not found');
+  }
+
+  const userMember = groupDoc.members.find(member => member.uid === userId);
+  if (!userMember || !userMember.isAdmin) {
+    throw new Error('Unauthorized');
+  }
+
+  // Get treasury
+  const treasury = await getGroupTreasury(userId, groupId);
+  if (!treasury) {
+    throw new Error('Treasury not found');
+  }
+
+  // Update prudent reserve
+  const updatedTreasury = {
+    ...treasury,
+    prudentReserve: amount,
+    updatedAt: new Date(),
+  };
+
+  await firestoreUtils.updateDoc(`treasuries/${groupId}`, updatedTreasury);
+  return updatedTreasury;
 };

@@ -280,3 +280,7 @@ export const formatForFirestore = (data: any): any => {
 export const generateId = () => {
   return db.collection('').doc().id;
 };
+
+export const timestampFromDate = (date: Date) => {
+  return Timestamp.fromDate(date);
+};

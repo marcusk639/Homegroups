@@ -3,7 +3,7 @@ import * as firestoreUtils from '../utils/firestore';
 import {ApiError} from '../middleware/error';
 import {STATUS_CODES, ERROR_MESSAGES} from '../utils/constants';
 import logger from '../utils/logger';
-import {UserProfile, UserUpdateData, Group, GroupMember} from '@/types';
+import {UserProfile, Group, GroupMember} from '@/types';
 
 /**
  * Get user profile data
@@ -32,11 +32,11 @@ export const getUserProfile = async (uid: string) => {
 
 /**
  * Update user profile data
+ * @param uid - The user's ID
+ * @param userData - The user's data to update. TODO: Add type UserUpdateData
+ * @returns The updated user data
  */
-export const updateUserProfile = async (
-  uid: string,
-  userData: UserUpdateData,
-) => {
+export const updateUserProfile = async (uid: string, userData: any) => {
   try {
     // Verify user exists
     const userExists = await firestoreUtils.docExists(`users/${uid}`);
@@ -226,8 +226,10 @@ export const addUserToGroup = async (uid: string, groupId: string) => {
         {
           uid,
           displayName: userData.displayName,
-          recoveryDate: userData.recoveryDate || undefined,
-          joinedAt: new Date(),
+          recoveryDate: userData.recoveryDate
+            ? firestoreUtils.timestampFromDate(userData.recoveryDate)
+            : undefined,
+          joinedAt: firestoreUtils.timestampFromDate(new Date()),
           isAdmin: false,
         },
       );

@@ -1,50 +1,41 @@
 export interface Meeting {
   id: string;
   groupId: string;
-  name: string;
-  description?: string;
-  day: string;
+  title: string;
+  description: string;
+  date: string;
   time: string;
-  duration: number; // In minutes
+  duration: number;
   location: string;
-  address?: string;
-  format: string;
+  address: string | null;
   isOnline: boolean;
-  onlineLink?: string;
-  isRecurring: boolean;
-  recurrencePattern?: string; // e.g., "weekly", "monthly"
+  onlineLink: string | null;
+  attendees: string[];
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string; // User ID
 }
 
 export interface MeetingCreationData {
   groupId: string;
-  name: string;
-  description?: string;
-  day: string;
+  title: string;
+  description: string;
+  date: string;
   time: string;
   duration: number;
   location: string;
   address?: string;
-  format: string;
   isOnline: boolean;
   onlineLink?: string;
-  isRecurring: boolean;
-  recurrencePattern?: string;
 }
 
 export interface MeetingUpdateData {
-  name?: string;
+  title?: string;
   description?: string;
-  day?: string;
+  date?: string;
   time?: string;
   duration?: number;
   location?: string;
   address?: string;
-  format?: string;
   isOnline?: boolean;
   onlineLink?: string;
-  isRecurring?: boolean;
-  recurrencePattern?: string;
 }

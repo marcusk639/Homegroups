@@ -17,30 +17,29 @@ export interface Treasury {
   balance: number;
   prudentReserve: number;
   transactions: Transaction[];
+  createdAt: Date;
+  updatedAt: Date;
 }
+
 export interface Transaction {
   id: string;
   groupId: string;
-  type: TransactionType;
+  type: 'income' | 'expense';
   amount: number;
-  category: TransactionCategory;
-  description?: string;
+  description: string;
+  category: string;
   date: Date;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string; // User ID
-  authorName: string; // Display name
-  receipt?: string; // URL to image
 }
 
 export interface TransactionCreationData {
-  groupId: string;
-  type: TransactionType;
+  type: 'income' | 'expense';
   amount: number;
-  category: TransactionCategory;
-  description?: string;
-  date: string; // YYYY-MM-DD
-  receipt?: string;
+  description: string;
+  category: string;
+  date: string;
 }
 
 export interface TransactionUpdateData {

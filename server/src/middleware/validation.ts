@@ -10,7 +10,7 @@ import {STATUS_CODES, ERROR_MESSAGES} from '../utils/constants';
  * @param source - Source of data to validate (body, query, params)
  */
 export const validate = (
-  schema: z.AnyZodObject | z.ZodOptional<z.AnyZodObject>,
+  schema: z.ZodType<any, any>,
   source: 'body' | 'query' | 'params' = 'body',
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -219,3 +219,25 @@ export const announcementUpdateSchema = Joi.object({
   .messages({
     'object.min': 'At least one field must be provided for update',
   });
+
+export const validateRequest = (schema: z.ZodType<any, any>) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync(req.body);
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors = error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+        }));
+        const errorMessage = `Validation failed: ${errors
+          .map(e => `${e.field} - ${e.message}`)
+          .join(', ')}`;
+        next(new ApiError(STATUS_CODES.BAD_REQUEST, errorMessage));
+      } else {
+        next(error);
+      }
+    }
+  };
+};

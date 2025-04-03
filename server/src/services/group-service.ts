@@ -76,7 +76,9 @@ export const createGroup = async (
         ),
         {
           displayName: userData.displayName,
-          recoveryDate: userData.recoveryDate,
+          recoveryDate: userData.recoveryDate
+            ? userData.recoveryDate.toISOString()
+            : undefined,
           updatedAt: new Date(),
         },
       );

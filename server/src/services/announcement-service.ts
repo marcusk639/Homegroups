@@ -6,6 +6,8 @@ import {
   Announcement,
   AnnouncementCreationData,
   AnnouncementUpdateData,
+  AnnouncementPaginationData,
+  AnnouncementAuthorData,
 } from '../types/announcement';
 import {getGroupById} from './group-service';
 import {UserProfile} from '@/types';
@@ -104,51 +106,47 @@ export const getAnnouncementById = async (
 export const createAnnouncement = async (
   userId: string,
   groupId: string,
-  data: AnnouncementCreationData,
+  announcementData: AnnouncementCreationData,
 ) => {
   try {
     // Verify the group exists and user is a member
-    const group = await getGroupById(userId, groupId);
+    await getGroupById(userId, groupId);
 
-    // Get user display name
-    const userDoc = await firestoreUtils.getDocById<UserProfile>(
-      'users',
-      userId,
+    // Get user profile for author info
+    const userProfile = await firestoreUtils.getDoc<UserProfile>(
+      firestoreUtils.docRef(`users/${userId}`),
     );
 
-    if (!userDoc) {
+    if (!userProfile) {
       throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    // Generate ID for the announcement
-    const announcementId = firestoreUtils.generateId();
+    // Validate author info
+    const authorData: AnnouncementAuthorData = {
+      authorId: userId,
+      authorName: userProfile.displayName,
+    };
 
-    // Create announcement object
+    // Create the announcement
     const announcement: Announcement = {
-      id: announcementId,
+      id: firestoreUtils.generateId(),
       groupId,
-      title: data.title,
-      content: data.content,
-      isPinned: data.isPinned || false,
+      title: announcementData.title,
+      content: announcementData.content,
+      ...authorData,
+      isPinned: announcementData.isPinned || false,
       createdAt: new Date(),
       updatedAt: new Date(),
       createdBy: userId,
-      authorName: userDoc.displayName,
-      expiresAt: data.expiresAt,
+      updatedBy: userId,
     };
 
-    // Save to firestore
+    // Save to Firestore
     await firestoreUtils.setDoc(
-      `groups/${groupId}/announcements/${announcementId}`,
+      `groups/${groupId}/announcements/${announcement.id}`,
       announcement,
     );
 
-    // If the announcement is pinned and there's a limit, unpin the oldest
-    if (announcement.isPinned) {
-      await managePinnedAnnouncements(groupId);
-    }
-
-    // Return the new announcement
     return announcement;
   } catch (error) {
     logger.error(`Error creating announcement: ${error}`);
@@ -171,14 +169,14 @@ export const updateAnnouncement = async (
   userId: string,
   groupId: string,
   announcementId: string,
-  data: AnnouncementUpdateData,
+  announcementData: AnnouncementUpdateData,
 ) => {
   try {
     // Verify the group exists and user is a member
-    const group = await getGroupById(userId, groupId);
+    await getGroupById(userId, groupId);
 
     // Get the announcement
-    const announcement = await firestoreUtils.getDocById<Announcement>(
+    const announcement = await firestoreUtils.getDocById(
       `groups/${groupId}/announcements`,
       announcementId,
     );
@@ -190,41 +188,20 @@ export const updateAnnouncement = async (
       );
     }
 
-    // Only creator or group admin can update
-    if (announcement.createdBy !== userId && !group.isAdmin) {
-      throw new ApiError(STATUS_CODES.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
-    }
-
-    // Check if announcement is being pinned
-    const wasPinned = announcement.isPinned;
-    const isPinned = data.isPinned !== undefined ? data.isPinned : wasPinned;
-
-    // Update announcement
-    const updateData: Partial<Announcement> = {
+    // Update the announcement
+    const updatedAnnouncement = {
+      ...announcement,
+      ...announcementData,
       updatedAt: new Date(),
     };
 
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.content !== undefined) updateData.content = data.content;
-    if (data.isPinned !== undefined) updateData.isPinned = data.isPinned;
-    if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt;
-
+    // Save to Firestore
     await firestoreUtils.updateDoc(
       `groups/${groupId}/announcements/${announcementId}`,
-      updateData,
+      updatedAnnouncement,
     );
 
-    // If the announcement is newly pinned, check pin limits
-    if (!wasPinned && isPinned) {
-      await managePinnedAnnouncements(groupId);
-    }
-
-    // Get the updated announcement
-    return await firestoreUtils.getDoc(
-      firestoreUtils.docRef(
-        `groups/${groupId}/announcements/${announcementId}`,
-      ),
-    );
+    return updatedAnnouncement;
   } catch (error) {
     logger.error(`Error updating announcement: ${error}`);
 
@@ -249,10 +226,10 @@ export const deleteAnnouncement = async (
 ) => {
   try {
     // Verify the group exists and user is a member
-    const group = await getGroupById(userId, groupId);
+    await getGroupById(userId, groupId);
 
     // Get the announcement
-    const announcement = await firestoreUtils.getDocById<Announcement>(
+    const announcement = await firestoreUtils.getDocById(
       `groups/${groupId}/announcements`,
       announcementId,
     );
@@ -264,17 +241,10 @@ export const deleteAnnouncement = async (
       );
     }
 
-    // Only creator or group admin can delete
-    if (announcement.createdBy !== userId && !group.isAdmin) {
-      throw new ApiError(STATUS_CODES.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN);
-    }
-
-    // Delete the announcement
+    // Delete from Firestore
     await firestoreUtils.deleteDoc(
       `groups/${groupId}/announcements/${announcementId}`,
     );
-
-    return {success: true};
   } catch (error) {
     logger.error(`Error deleting announcement: ${error}`);
 
