@@ -3,30 +3,29 @@ export interface Event {
   groupId: string;
   title: string;
   description: string;
-  date: Date;
+  date: string;
   time: string;
-  duration: number; // In minutes
+  duration: number;
   location: string;
-  address?: string;
+  address: string | null;
   isOnline: boolean;
-  onlineLink?: string;
+  onlineLink: string | null;
+  attendees: string[];
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string; // User ID
-  attendees?: string[]; // Array of user IDs
 }
 
 export interface EventCreationData {
   groupId: string;
   title: string;
   description: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
+  date: string;
+  time: string;
   duration: number;
   location: string;
-  address?: string;
+  address?: string | null;
   isOnline: boolean;
-  onlineLink?: string;
+  onlineLink?: string | null;
 }
 
 export interface EventUpdateData {
@@ -36,7 +35,7 @@ export interface EventUpdateData {
   time?: string;
   duration?: number;
   location?: string;
-  address?: string;
+  address?: string | null;
   isOnline?: boolean;
-  onlineLink?: string;
+  onlineLink?: string | null;
 }

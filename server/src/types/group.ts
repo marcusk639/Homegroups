@@ -1,7 +1,7 @@
 export interface GroupMember {
   uid: string;
   displayName: string;
-  recoveryDate?: string;
+  recoveryDate?: string | null | undefined;
   joinedAt: Date;
   position?: string; // Secretary, treasurer, etc.
   isAdmin: boolean;
