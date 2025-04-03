@@ -1,17 +1,17 @@
-import { auth } from "../config/firebase";
-import * as firestoreUtils from "../utils/firestore";
-import { UserUpdateData } from "../types/user";
-import { ApiError } from "../middleware/error";
-import { STATUS_CODES, ERROR_MESSAGES } from "../utils/constants";
-import logger from "../utils/logger";
+import {auth} from '../config/firebase';
+import * as firestoreUtils from '../utils/firestore';
+import {ApiError} from '../middleware/error';
+import {STATUS_CODES, ERROR_MESSAGES} from '../utils/constants';
+import logger from '../utils/logger';
+import {UserProfile, UserUpdateData, Group, GroupMember} from '@/types';
 
 /**
  * Get user profile data
  */
 export const getUserProfile = async (uid: string) => {
   try {
-    const userData = await firestoreUtils.getDoc(
-      firestoreUtils.docRef(`users/${uid}`)
+    const userData = await firestoreUtils.getDoc<UserProfile>(
+      firestoreUtils.docRef(`users/${uid}`),
     );
 
     if (!userData) {
@@ -35,7 +35,7 @@ export const getUserProfile = async (uid: string) => {
  */
 export const updateUserProfile = async (
   uid: string,
-  userData: UserUpdateData
+  userData: UserUpdateData,
 ) => {
   try {
     // Verify user exists
@@ -47,7 +47,7 @@ export const updateUserProfile = async (
 
     // Update display name in Firebase Auth if included
     if (userData.displayName) {
-      await auth.updateUser(uid, { displayName: userData.displayName });
+      await auth.updateUser(uid, {displayName: userData.displayName});
     }
 
     // Update user document in Firestore
@@ -64,7 +64,7 @@ export const updateUserProfile = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -85,8 +85,8 @@ export const getUserGroups = async (uid: string) => {
     const groups = [];
 
     for (const groupId of userData.homeGroups) {
-      const groupData = await firestoreUtils.getDoc(
-        firestoreUtils.docRef(`groups/${groupId}`)
+      const groupData = await firestoreUtils.getDoc<Group>(
+        firestoreUtils.docRef<Group>(`groups/${groupId}`),
       );
 
       if (groupData) {
@@ -110,7 +110,7 @@ export const getUserGroups = async (uid: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -134,8 +134,8 @@ export const getUserMeetings = async (uid: string) => {
 
     for (const groupId of userData.homeGroups) {
       // Get the group data to display names
-      const groupData = await firestoreUtils.getDoc(
-        firestoreUtils.docRef(`groups/${groupId}`)
+      const groupData = await firestoreUtils.getDoc<Group>(
+        firestoreUtils.docRef(`groups/${groupId}`),
       );
 
       if (groupData) {
@@ -145,7 +145,7 @@ export const getUserMeetings = async (uid: string) => {
         upcomingMeetings.push({
           id: `meeting-${groupId}-1`,
           name: groupData.name,
-          dayOfWeek: "Today",
+          dayOfWeek: 'Today',
           time: groupData.meetingTime,
           location: groupData.location,
           format: groupData.format,
@@ -165,7 +165,7 @@ export const getUserMeetings = async (uid: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -181,7 +181,7 @@ export const addUserToGroup = async (uid: string, groupId: string) => {
     if (!groupExists) {
       throw new ApiError(
         STATUS_CODES.NOT_FOUND,
-        ERROR_MESSAGES.GROUP_NOT_FOUND
+        ERROR_MESSAGES.GROUP_NOT_FOUND,
       );
     }
 
@@ -192,22 +192,22 @@ export const addUserToGroup = async (uid: string, groupId: string) => {
     if (userData.homeGroups && userData.homeGroups.includes(groupId)) {
       throw new ApiError(
         STATUS_CODES.CONFLICT,
-        ERROR_MESSAGES.USER_ALREADY_IN_GROUP
+        ERROR_MESSAGES.USER_ALREADY_IN_GROUP,
       );
     }
 
     // Run in a transaction to ensure consistency
-    await firestoreUtils.runTransaction(async (transaction) => {
+    await firestoreUtils.runTransaction(async transaction => {
       // Get group data
       const groupDoc = await transaction.get(
-        firestoreUtils.docRef(`groups/${groupId}`)
+        firestoreUtils.docRef<Group>(`groups/${groupId}`),
       );
       const groupData = groupDoc.data();
 
       if (!groupData) {
         throw new ApiError(
           STATUS_CODES.NOT_FOUND,
-          ERROR_MESSAGES.GROUP_NOT_FOUND
+          ERROR_MESSAGES.GROUP_NOT_FOUND,
         );
       }
 
@@ -222,25 +222,25 @@ export const addUserToGroup = async (uid: string, groupId: string) => {
 
       // Add user to group members subcollection
       transaction.set(
-        firestoreUtils.docRef(`groups/${groupId}/members/${uid}`),
+        firestoreUtils.docRef<GroupMember>(`groups/${groupId}/members/${uid}`),
         {
           uid,
           displayName: userData.displayName,
-          recoveryDate: userData.recoveryDate || null,
+          recoveryDate: userData.recoveryDate || undefined,
           joinedAt: new Date(),
           isAdmin: false,
-        }
+        },
       );
 
       // Update group's memberCount
       const newMemberCount = (groupData.memberCount || 0) + 1;
-      transaction.update(firestoreUtils.docRef(`groups/${groupId}`), {
+      transaction.update(firestoreUtils.docRef<Group>(`groups/${groupId}`), {
         memberCount: newMemberCount,
         updatedAt: new Date(),
       });
     });
 
-    return { success: true };
+    return {success: true};
   } catch (error) {
     logger.error(`Error adding user to group: ${error}`);
 
@@ -250,7 +250,7 @@ export const addUserToGroup = async (uid: string, groupId: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -267,28 +267,28 @@ export const removeUserFromGroup = async (uid: string, groupId: string) => {
     if (!userData.homeGroups || !userData.homeGroups.includes(groupId)) {
       throw new ApiError(
         STATUS_CODES.BAD_REQUEST,
-        ERROR_MESSAGES.USER_NOT_IN_GROUP
+        ERROR_MESSAGES.USER_NOT_IN_GROUP,
       );
     }
 
     // Run in a transaction to ensure consistency
-    await firestoreUtils.runTransaction(async (transaction) => {
+    await firestoreUtils.runTransaction(async transaction => {
       // Get group data
       const groupDoc = await transaction.get(
-        firestoreUtils.docRef(`groups/${groupId}`)
+        firestoreUtils.docRef<Group>(`groups/${groupId}`),
       );
       const groupData = groupDoc.data();
 
       if (!groupData) {
         throw new ApiError(
           STATUS_CODES.NOT_FOUND,
-          ERROR_MESSAGES.GROUP_NOT_FOUND
+          ERROR_MESSAGES.GROUP_NOT_FOUND,
         );
       }
 
       // Check if user is an admin
       const memberDoc = await transaction.get(
-        firestoreUtils.docRef(`groups/${groupId}/members/${uid}`)
+        firestoreUtils.docRef<GroupMember>(`groups/${groupId}/members/${uid}`),
       );
       const memberData = memberDoc.data();
 
@@ -296,20 +296,20 @@ export const removeUserFromGroup = async (uid: string, groupId: string) => {
         // Check if this is the last admin
         const adminsQuery = await firestoreUtils.getDocs(
           firestoreUtils
-            .colRef(`groups/${groupId}/members`)
-            .where("isAdmin", "==", true)
+            .colRef<GroupMember>(`groups/${groupId}/members`)
+            .where('isAdmin', '==', true),
         );
 
         if (adminsQuery.length <= 1) {
           throw new ApiError(
             STATUS_CODES.BAD_REQUEST,
-            ERROR_MESSAGES.CANNOT_REMOVE_LAST_ADMIN
+            ERROR_MESSAGES.CANNOT_REMOVE_LAST_ADMIN,
           );
         }
       }
 
       // Update user's homeGroups array
-      const homeGroups = userData.homeGroups.filter((id) => id !== groupId);
+      const homeGroups = userData.homeGroups.filter(id => id !== groupId);
 
       transaction.update(firestoreUtils.docRef(`users/${uid}`), {
         homeGroups,
@@ -318,27 +318,27 @@ export const removeUserFromGroup = async (uid: string, groupId: string) => {
 
       // Remove user from group members subcollection
       transaction.delete(
-        firestoreUtils.docRef(`groups/${groupId}/members/${uid}`)
+        firestoreUtils.docRef<GroupMember>(`groups/${groupId}/members/${uid}`),
       );
 
       // Update group's memberCount
       const newMemberCount = Math.max((groupData.memberCount || 0) - 1, 0);
-      transaction.update(firestoreUtils.docRef(`groups/${groupId}`), {
+      transaction.update(firestoreUtils.docRef<Group>(`groups/${groupId}`), {
         memberCount: newMemberCount,
         updatedAt: new Date(),
       });
 
       // If user was an admin, remove from admins array
       if (memberData && memberData.isAdmin && groupData.admins) {
-        const admins = groupData.admins.filter((adminId) => adminId !== uid);
-        transaction.update(firestoreUtils.docRef(`groups/${groupId}`), {
+        const admins = groupData.admins.filter(adminId => adminId !== uid);
+        transaction.update(firestoreUtils.docRef<Group>(`groups/${groupId}`), {
           admins,
           updatedAt: new Date(),
         });
       }
     });
 
-    return { success: true };
+    return {success: true};
   } catch (error) {
     logger.error(`Error removing user from group: ${error}`);
 
@@ -348,7 +348,7 @@ export const removeUserFromGroup = async (uid: string, groupId: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -407,7 +407,7 @@ export const getUserCelebrations = async (uid: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };

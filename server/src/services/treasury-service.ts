@@ -1,9 +1,15 @@
-import * as firestoreUtils from "../utils/firestore";
-import { ApiError } from "../middleware/error";
-import { STATUS_CODES, ERROR_MESSAGES } from "../utils/constants";
-import logger from "../utils/logger";
-import { TransactionType, TransactionCategory } from "../types/treasury";
-import { getGroupById } from "./group-service";
+import * as firestoreUtils from '../utils/firestore';
+import {ApiError} from '../middleware/error';
+import {STATUS_CODES, ERROR_MESSAGES} from '../utils/constants';
+import logger from '../utils/logger';
+import {
+  TransactionType,
+  TransactionCategory,
+  Transaction,
+  Treasury,
+} from '../types/treasury';
+import {getGroupById} from './group-service';
+import {UserProfile} from '@/types/user';
 
 /**
  * Get all transactions for a group
@@ -12,7 +18,7 @@ export const getGroupTransactions = async (
   userId: string,
   groupId: string,
   limit: number = 50,
-  startAfter?: string
+  startAfter?: string,
 ) => {
   try {
     // Verify the group exists and user is a member
@@ -21,13 +27,13 @@ export const getGroupTransactions = async (
     // Build the query
     let query = firestoreUtils
       .colRef(`groups/${groupId}/transactions`)
-      .orderBy("date", "desc")
+      .orderBy('date', 'desc')
       .limit(limit);
 
     // If starting after a specific document
     if (startAfter) {
       const startAfterDoc = await firestoreUtils.getDoc(
-        firestoreUtils.docRef(`groups/${groupId}/transactions/${startAfter}`)
+        firestoreUtils.docRef(`groups/${groupId}/transactions/${startAfter}`),
       );
       if (startAfterDoc) {
         query = query.startAfter(startAfterDoc);
@@ -47,7 +53,7 @@ export const getGroupTransactions = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -61,9 +67,9 @@ export const createTransaction = async (
   type: TransactionType,
   amount: number,
   category: TransactionCategory,
-  description: string = "",
+  description: string = '',
   date: string,
-  receipt: string = ""
+  receipt: string = '',
 ) => {
   try {
     // Verify the group exists and user is a member
@@ -72,7 +78,9 @@ export const createTransaction = async (
     // In a real app, you might want to restrict transaction creation to treasurers or admins
 
     // Get user display name
-    const userDoc = await firestoreUtils.getDoc(`users/${userId}`);
+    const userDoc = await firestoreUtils.getDoc<UserProfile>(
+      firestoreUtils.docRef<UserProfile>(`users/${userId}`),
+    );
 
     if (!userDoc) {
       throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
@@ -97,7 +105,7 @@ export const createTransaction = async (
 
     await firestoreUtils.setDoc(
       `groups/${groupId}/transactions/${transactionId}`,
-      transactionData
+      transactionData,
     );
 
     // Update group treasury overview
@@ -113,7 +121,7 @@ export const createTransaction = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -130,21 +138,21 @@ export const updateTransaction = async (
   category?: TransactionCategory,
   description?: string,
   date?: string,
-  receipt?: string
+  receipt?: string,
 ) => {
   try {
     // Verify the group exists and user is a member
     const group = await getGroupById(userId, groupId);
 
-    // Get the transaction
-    const transaction = await firestoreUtils.getDoc(
-      `groups/${groupId}/transactions/${transactionId}`
+    const transaction = await firestoreUtils.getDocById<Transaction>(
+      `groups/${groupId}/transactions`,
+      transactionId,
     );
 
     if (!transaction) {
       throw new ApiError(
         STATUS_CODES.NOT_FOUND,
-        ERROR_MESSAGES.TRANSACTION_NOT_FOUND
+        ERROR_MESSAGES.TRANSACTION_NOT_FOUND,
       );
     }
 
@@ -154,7 +162,7 @@ export const updateTransaction = async (
     }
 
     // Prepare update data
-    const updateData: any = { updatedAt: new Date() };
+    const updateData: any = {updatedAt: new Date()};
 
     if (type !== undefined) updateData.type = type;
     if (amount !== undefined) updateData.amount = amount;
@@ -166,15 +174,16 @@ export const updateTransaction = async (
     // Update the transaction
     await firestoreUtils.updateDoc(
       `groups/${groupId}/transactions/${transactionId}`,
-      updateData
+      updateData,
     );
 
     // Update group treasury overview
     await updateTreasuryOverview(groupId);
 
     // Get the updated transaction
-    return await firestoreUtils.getDoc(
-      `groups/${groupId}/transactions/${transactionId}`
+    return await firestoreUtils.getDocById<Transaction>(
+      `groups/${groupId}/transactions`,
+      transactionId,
     );
   } catch (error) {
     logger.error(`Error updating transaction: ${error}`);
@@ -185,7 +194,7 @@ export const updateTransaction = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -196,21 +205,22 @@ export const updateTransaction = async (
 export const deleteTransaction = async (
   userId: string,
   groupId: string,
-  transactionId: string
+  transactionId: string,
 ) => {
   try {
     // Verify the group exists and user is a member
     const group = await getGroupById(userId, groupId);
 
     // Get the transaction
-    const transaction = await firestoreUtils.getDoc(
-      `groups/${groupId}/transactions/${transactionId}`
+    const transaction = await firestoreUtils.getDocById<Transaction>(
+      `groups/${groupId}/transactions`,
+      transactionId,
     );
 
     if (!transaction) {
       throw new ApiError(
         STATUS_CODES.NOT_FOUND,
-        ERROR_MESSAGES.TRANSACTION_NOT_FOUND
+        ERROR_MESSAGES.TRANSACTION_NOT_FOUND,
       );
     }
 
@@ -221,13 +231,13 @@ export const deleteTransaction = async (
 
     // Delete the transaction
     await firestoreUtils.deleteDoc(
-      `groups/${groupId}/transactions/${transactionId}`
+      `groups/${groupId}/transactions/${transactionId}`,
     );
 
     // Update group treasury overview
     await updateTreasuryOverview(groupId);
 
-    return { success: true };
+    return {success: true};
   } catch (error) {
     logger.error(`Error deleting transaction: ${error}`);
 
@@ -237,7 +247,7 @@ export const deleteTransaction = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -251,8 +261,9 @@ export const getTreasuryOverview = async (userId: string, groupId: string) => {
     await getGroupById(userId, groupId);
 
     // Get treasury overview document
-    const overview = await firestoreUtils.getDoc(
-      `groups/${groupId}/treasury/overview`
+    const overview = await firestoreUtils.getDocById<Treasury>(
+      `groups/${groupId}/treasury/overview`,
+      'overview',
     );
 
     if (!overview) {
@@ -270,7 +281,7 @@ export const getTreasuryOverview = async (userId: string, groupId: string) => {
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -282,15 +293,15 @@ export const getTreasuryOverview = async (userId: string, groupId: string) => {
 export const updateTreasuryOverview = async (groupId: string) => {
   try {
     // Get all transactions for the group
-    const transactions = await firestoreUtils.getCollection(
-      `groups/${groupId}/transactions`
+    const transactions = await firestoreUtils.getCollection<Transaction>(
+      `groups/${groupId}/transactions`,
     );
 
     // Calculate balance
     let balance = 0;
 
     for (const transaction of transactions) {
-      if (transaction.type === "income") {
+      if (transaction.type === 'income') {
         balance += transaction.amount;
       } else {
         balance -= transaction.amount;
@@ -308,7 +319,7 @@ export const updateTreasuryOverview = async (groupId: string) => {
       const transactionDate = new Date(transaction.date);
 
       if (transactionDate >= firstDayOfMonth) {
-        if (transaction.type === "income") {
+        if (transaction.type === 'income') {
           monthlyIncome += transaction.amount;
         } else {
           monthlyExpenses += transaction.amount;
@@ -316,9 +327,10 @@ export const updateTreasuryOverview = async (groupId: string) => {
       }
     }
 
-    // Get prudent reserve from group settings or use default
-    const groupDoc = await firestoreUtils.getDoc(`groups/${groupId}`);
-    const prudentReserve = groupDoc?.prudentReserve || 0;
+    const treasuryDoc = await firestoreUtils.getDoc<Treasury>(
+      firestoreUtils.docRef<Treasury>(`groups/${groupId}/treasury`),
+    );
+    const prudentReserve = treasuryDoc?.prudentReserve || 0;
 
     // Calculate available funds
     const availableFunds = balance - prudentReserve;
@@ -336,7 +348,7 @@ export const updateTreasuryOverview = async (groupId: string) => {
     await firestoreUtils.setDoc(
       `groups/${groupId}/treasury/overview`,
       overviewData,
-      true
+      true,
     );
 
     return overviewData;
@@ -352,7 +364,7 @@ export const updateTreasuryOverview = async (groupId: string) => {
 export const setPrudentReserve = async (
   userId: string,
   groupId: string,
-  amount: number
+  amount: number,
 ) => {
   try {
     // Verify the group exists and user is an admin
@@ -361,7 +373,7 @@ export const setPrudentReserve = async (
     if (!group.isAdmin) {
       throw new ApiError(
         STATUS_CODES.FORBIDDEN,
-        ERROR_MESSAGES.NOT_GROUP_ADMIN
+        ERROR_MESSAGES.NOT_GROUP_ADMIN,
       );
     }
 
@@ -384,7 +396,7 @@ export const setPrudentReserve = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -397,7 +409,7 @@ export const getTransactionSummaryByCategory = async (
   groupId: string,
   type: TransactionType,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) => {
   try {
     // Verify the group exists and user is a member
@@ -405,21 +417,21 @@ export const getTransactionSummaryByCategory = async (
 
     // Get transactions filtered by type and date range
     let query = firestoreUtils
-      .colRef(`groups/${groupId}/transactions`)
-      .where("type", "==", type);
+      .colRef<Transaction>(`groups/${groupId}/transactions`)
+      .where('type', '==', type);
 
     if (startDate) {
-      query = query.where("date", ">=", startDate);
+      query = query.where('date', '>=', startDate);
     }
 
     if (endDate) {
-      query = query.where("date", "<=", endDate);
+      query = query.where('date', '<=', endDate);
     }
 
-    const transactions = await firestoreUtils.getDocs(query);
+    const transactions = await firestoreUtils.getDocs<Transaction>(query);
 
     // Group by category and sum amounts
-    const summary = {};
+    const summary: Record<string, number> = {};
 
     for (const transaction of transactions) {
       const category = transaction.category;
@@ -449,7 +461,7 @@ export const getTransactionSummaryByCategory = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };
@@ -460,7 +472,7 @@ export const getTransactionSummaryByCategory = async (
 export const getMonthlyTransactionSummary = async (
   userId: string,
   groupId: string,
-  months: number = 12
+  months: number = 12,
 ) => {
   try {
     // Verify the group exists and user is a member
@@ -471,26 +483,34 @@ export const getMonthlyTransactionSummary = async (
     const startDate = new Date(
       now.getFullYear(),
       now.getMonth() - months + 1,
-      1
+      1,
     );
-    const startDateString = startDate.toISOString().split("T")[0];
+    const startDateString = startDate.toISOString().split('T')[0];
 
     // Get transactions in date range
-    const transactions = await firestoreUtils.getDocs(
+    const transactions = await firestoreUtils.getDocs<Transaction>(
       firestoreUtils
-        .colRef(`groups/${groupId}/transactions`)
-        .where("date", ">=", startDateString)
-        .orderBy("date", "asc")
+        .colRef<Transaction>(`groups/${groupId}/transactions`)
+        .where('date', '>=', startDateString)
+        .orderBy('date', 'asc'),
     );
 
     // Group by month and type, sum amounts
-    const summary = {};
+    const summary: Record<
+      string,
+      {
+        month: string;
+        income: number;
+        expense: number;
+        balance: number;
+      }
+    > = {};
 
     for (const transaction of transactions) {
       const date = new Date(transaction.date);
       const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
+        date.getMonth() + 1,
+      ).padStart(2, '0')}`;
       const type = transaction.type;
       const amount = transaction.amount;
 
@@ -503,7 +523,7 @@ export const getMonthlyTransactionSummary = async (
         };
       }
 
-      if (type === "income") {
+      if (type === 'income') {
         summary[monthKey].income += amount;
       } else {
         summary[monthKey].expense += amount;
@@ -517,11 +537,11 @@ export const getMonthlyTransactionSummary = async (
     for (let i = 0; i < months; i++) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${monthDate.getFullYear()}-${String(
-        monthDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-      const monthName = monthDate.toLocaleString("default", {
-        month: "short",
-        year: "numeric",
+        monthDate.getMonth() + 1,
+      ).padStart(2, '0')}`;
+      const monthName = monthDate.toLocaleString('default', {
+        month: 'short',
+        year: 'numeric',
       });
 
       const monthData = summary[monthKey] || {
@@ -532,7 +552,7 @@ export const getMonthlyTransactionSummary = async (
 
       runningBalance += monthData.income - monthData.expense;
       monthData.balance = runningBalance;
-      monthData.monthName = monthName;
+      monthData.month = monthName;
 
       result.unshift(monthData); // Add to beginning to maintain chronological order
     }
@@ -547,7 +567,7 @@ export const getMonthlyTransactionSummary = async (
 
     throw new ApiError(
       STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.INTERNAL_SERVER_ERROR
+      ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     );
   }
 };

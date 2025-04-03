@@ -1,4 +1,4 @@
-import { db } from "../config/firebase";
+import {db} from '../config/firebase';
 import {
   DocumentData,
   QueryDocumentSnapshot,
@@ -8,8 +8,9 @@ import {
   Query,
   QuerySnapshot,
   Timestamp,
-} from "firebase-admin/firestore";
-import logger from "./logger";
+  UpdateData,
+} from 'firebase-admin/firestore';
+import logger from './logger';
 
 /**
  * Standard Firestore data converter
@@ -18,7 +19,7 @@ import logger from "./logger";
 export const converter = <T>(): FirestoreDataConverter<T> => ({
   toFirestore: (data: T) => {
     // Convert any Date objects to Firestore Timestamps
-    const processedData = { ...(data as object) };
+    const processedData: Record<string, any> = {...(data as object)};
 
     for (const [key, value] of Object.entries(processedData)) {
       if (value instanceof Date) {
@@ -39,7 +40,7 @@ export const converter = <T>(): FirestoreDataConverter<T> => ({
     }
 
     // Add the document ID to the data
-    return { ...data, id: snapshot.id } as unknown as T;
+    return {...data, id: snapshot.id} as unknown as T;
   },
 });
 
@@ -63,7 +64,7 @@ export const colRef = <T>(path: string): CollectionReference<T> => {
 export const getDocs = async <T>(query: Query<T>): Promise<T[]> => {
   try {
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => doc.data());
+    return snapshot.docs.map(doc => doc.data());
   } catch (error) {
     logger.error(`Error getting documents: ${error}`);
     throw error;
@@ -74,7 +75,7 @@ export const getDocs = async <T>(query: Query<T>): Promise<T[]> => {
  * Get a document by reference
  */
 export const getDoc = async <T>(
-  ref: DocumentReference<T>
+  ref: DocumentReference<T>,
 ): Promise<T | null> => {
   try {
     const doc = await ref.get();
@@ -85,13 +86,21 @@ export const getDoc = async <T>(
   }
 };
 
+export const getDocById = async <T>(
+  collectionPath: string,
+  id: string,
+): Promise<T | null> => {
+  const ref = docRef<T>(`${collectionPath}/${id}`);
+  return await getDoc(ref);
+};
+
 /**
  * Create a document with auto-generated ID
  */
 export const createDoc = async <T>(
   collectionPath: string,
-  data: Partial<T>
-): Promise<{ id: string; data: T }> => {
+  data: Partial<T>,
+): Promise<{id: string; data: T}> => {
   try {
     const collectionRef = colRef<T>(collectionPath);
     const docRef = await collectionRef.add({
@@ -101,7 +110,7 @@ export const createDoc = async <T>(
     } as unknown as T);
 
     const doc = await docRef.get();
-    return { id: doc.id, data: doc.data() as T };
+    return {id: doc.id, data: doc.data() as T};
   } catch (error) {
     logger.error(`Error creating document: ${error}`);
     throw error;
@@ -114,13 +123,13 @@ export const createDoc = async <T>(
 export const setDoc = async <T>(
   documentPath: string,
   data: Partial<T>,
-  merge: boolean = false
+  merge: boolean = false,
 ): Promise<void> => {
   try {
     const ref = docRef<T>(documentPath);
 
-    const dataWithTimestamps = {
-      ...(data as object),
+    const dataWithTimestamps: Record<string, any> = {
+      ...data,
       updatedAt: Timestamp.now(),
     };
 
@@ -129,7 +138,7 @@ export const setDoc = async <T>(
       dataWithTimestamps.createdAt = Timestamp.now();
     }
 
-    await ref.set(dataWithTimestamps as unknown as T, { merge });
+    await ref.set(dataWithTimestamps as T, {merge});
   } catch (error) {
     logger.error(`Error setting document: ${error}`);
     throw error;
@@ -141,7 +150,7 @@ export const setDoc = async <T>(
  */
 export const updateDoc = async <T>(
   documentPath: string,
-  data: Partial<T>
+  data: Partial<T>,
 ): Promise<void> => {
   try {
     const ref = docRef<T>(documentPath);
@@ -149,7 +158,7 @@ export const updateDoc = async <T>(
     await ref.update({
       ...(data as object),
       updatedAt: Timestamp.now(),
-    });
+    } as unknown as UpdateData<T>);
   } catch (error) {
     logger.error(`Error updating document: ${error}`);
     throw error;
@@ -172,7 +181,7 @@ export const deleteDoc = async (documentPath: string): Promise<void> => {
  * Get all documents in a collection
  */
 export const getCollection = async <T>(
-  collectionPath: string
+  collectionPath: string,
 ): Promise<T[]> => {
   try {
     return await getDocs<T>(colRef<T>(collectionPath));
@@ -187,7 +196,7 @@ export const getCollection = async <T>(
  */
 export const getSubCollection = async <T>(
   documentPath: string,
-  subCollectionName: string
+  subCollectionName: string,
 ): Promise<T[]> => {
   try {
     const path = `${documentPath}/${subCollectionName}`;
@@ -202,7 +211,7 @@ export const getSubCollection = async <T>(
  * Execute query in a transaction
  */
 export const runTransaction = async <T>(
-  callback: (transaction: FirebaseFirestore.Transaction) => Promise<T>
+  callback: (transaction: FirebaseFirestore.Transaction) => Promise<T>,
 ): Promise<T> => {
   try {
     return await db.runTransaction(callback);
@@ -216,7 +225,7 @@ export const runTransaction = async <T>(
  * Execute a batch write
  */
 export const runBatch = async (
-  callback: (batch: FirebaseFirestore.WriteBatch) => void
+  callback: (batch: FirebaseFirestore.WriteBatch) => void,
 ): Promise<void> => {
   try {
     const batch = db.batch();
@@ -248,7 +257,7 @@ export const docExists = async (documentPath: string): Promise<boolean> => {
 export const formatForFirestore = (data: any): any => {
   if (!data) return data;
 
-  const result = { ...data };
+  const result = {...data};
 
   for (const [key, value] of Object.entries(result)) {
     // Convert Date objects to Firestore Timestamps
@@ -256,7 +265,7 @@ export const formatForFirestore = (data: any): any => {
       result[key] = Timestamp.fromDate(value);
     }
     // Convert nested objects
-    else if (value && typeof value === "object" && !Array.isArray(value)) {
+    else if (value && typeof value === 'object' && !Array.isArray(value)) {
       result[key] = formatForFirestore(value);
     }
     // Remove undefined values (Firestore doesn't accept them)
@@ -269,5 +278,5 @@ export const formatForFirestore = (data: any): any => {
 };
 
 export const generateId = () => {
-  return db.collection("").doc().id;
+  return db.collection('').doc().id;
 };

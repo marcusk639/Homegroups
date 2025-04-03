@@ -1,16 +1,23 @@
-export type TransactionType = "income" | "expense";
+export type TransactionType = 'income' | 'expense';
 export type TransactionCategory =
-  | "7th Tradition"
-  | "Literature Sales"
-  | "Event Income"
-  | "Other Income"
-  | "Rent"
-  | "Literature Purchase"
-  | "Refreshments"
-  | "Events"
-  | "Contributions"
-  | "Other Expense";
+  | '7th Tradition'
+  | 'Literature Sales'
+  | 'Event Income'
+  | 'Other Income'
+  | 'Rent'
+  | 'Literature Purchase'
+  | 'Refreshments'
+  | 'Events'
+  | 'Contributions'
+  | 'Other Expense';
 
+export interface Treasury {
+  id: string;
+  groupId: string;
+  balance: number;
+  prudentReserve: number;
+  transactions: Transaction[];
+}
 export interface Transaction {
   id: string;
   groupId: string;
