@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { FirebaseError } from "firebase-admin";
 import logger from "../utils/logger";
 import serviceKey from "./service-key";
 /**
@@ -58,4 +59,4 @@ db.settings({
   timestampsInSnapshots: true,
 });
 
-export { firebaseAdmin, auth, db };
+export { firebaseAdmin, auth, db, FirebaseError };

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { UnitAnyCase } from "ms";
 import { DecodedToken } from "../types/auth";
 
 /**
@@ -15,8 +16,8 @@ export const generateToken = (
   role: string
 ): string => {
   const secret = process.env.JWT_SECRET || "your-secret-key-change-this-asap";
-  const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
-
+  const expiresIn =
+    (process.env.JWT_EXPIRES_IN as `${number}${UnitAnyCase}`) || "7D";
   return jwt.sign({ uid, email, role }, secret, { expiresIn });
 };
 
